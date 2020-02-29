@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css?family=Fira+Sans:300,400,500&display=swap&subset=cyrillic" rel="stylesheet">
+    <link rel="stylesheet" href="https://necolas.github.io/normalize.css/latest/normalize.css">
+    <link rel="stylesheet" href="style.css">
+    <title>Document</title>
+</head>
+<body>
+    <div id="map"></div>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=3ed851d6-7149-4ad7-b8f6-686ad3475b6f&lang=ru_RU" type="text/javascript"></script>
+    <script type="text/javascript">
+        ymaps.ready(init);
+
+        function init() {
+            var geoMap = new ymaps.Map('map', {
+                center: [59.95005802, 30.31781392],
+                zoom: 12,
+                controls: ['zoomControl']
+            });
+
+            var clusterer = new ymaps.Clusterer({
+                groupByCoordinates: false,
+                clusterDisableClickZoom: true,
+                clusterOpenBalloonOnClick: true,
+                clusterBalloonContentLayout: 'cluster#balloonCarousel',
+                clusterBalloonPanelMaxMapArea: 0,
+                clusterBalloonContentLayoutWidth: 350,
+                clusterBalloonContentLayoutHeight: 200,
+                clusterBalloonPagerSize: 5,
+                clusterBalloonItemContentLayout: customClusterBalloon
+            });
+
+            geoMap.geoObjects.add(clusterer);
+
+            var customClusterBalloon = ymaps.templateLayoutFactory.createClass(
+                '<h2 class=ballon_header>{{ properties.balloonContentHeader|raw }}</h2>' + 
+                '<div class=ballon_body>{{ properties.review|raw }}</div>' + 
+                '<div class=ballon_body>{{ properties.date|raw }}</div>'
+            );
+            
+            var windowTemplate = `<div class="popup__header"><div class="address"></div><button class="close"><div class="close__line"></div><div class="close__line"></div></button></div><div class="popup__body"><div class="reviews"><ul class="reviews__list"></ul></div><form class="form"><h3 class="form__title">ваш отзыв</h3><input required type="text" name="username" class="form__input" placeholder="Ваше имя"><input required type="text" name="place" class="form__input" placeholder="Укажите место"><textarea required name="review" class="form__textarea" placeholder="Поделитесь впечатлениями"></textarea><button type="submit" class="form__button">добавить</button></form></div>`;
+
+            let placemarks = JSON.parse(localStorage.getItem('placemarks')) || [];
+
+            placemarks.forEach(object => {
+                var placemark = new ymaps.Placemark(object.coords, {
+                    balloonContentHeader: `<a href="#">${object.address}</a>`,
+                    balloonContentBody: `<div>${object.user} ${object.place}</div>`,
+                    balloonContentFooter: `<div>${object.date} ${object.time}</div>`,
+                    coords: object.coords,
+                    address: object.address,
+                    user: object.user,
+                    place: object.place,
+                    review: object.review,
+                    date: object.date,
+                    time: object.time 
+                })
+
+                placemark.events.add('click', e => {
+                    e.preventDefault()
+                })
+
+                clusterer.add(placemark)
+            })
+
+            geoMap.geoObjects.events.add('click', e => {
+                console.log(e.get('target'));
+                if (e.get('target').options._name == 'geoObject') {
+                    e.preventDefault();
+                    geoMap.events.remove('click', openNewWindow);
+                    let popup = document.createElement('div');
+                    let address;
+
+                    popup.innerHTML = windowTemplate;
+                    popup.classList.add('popup');
+                    document.body.appendChild(popup);
+                    document.querySelector('.address').textContent = e.get('target').properties._data.address;
+                    document.querySelector('.close').addEventListener('click', () => {
+                    document.querySelector('.popup').remove()
+                    geoMap.events.add('click', openNewWindow)
+                })
+                }
+            })
+            geoMap.events.add('click', openNewWindow);
+                   
+            function openNewWindow(e) {
+                geoMap.events.remove('click', openNewWindow);
+
+                let coords = e.get('coords');
+                let popup = document.createElement('div');
+                let address;
+
+                popup.innerHTML = windowTemplate;
+                popup.classList.add('popup');
+                document.body.appendChild(popup);
+
+                
+
+                ymaps.geocode(coords).then(res => {
+                    address = res.geoObjects.get(0).getAddressLine();
+                    document.querySelector('.address').textContent = address
+                });
+
+                document.querySelector('.form').addEventListener('submit', e => {
+                    e.preventDefault();
+                    let placemark =  
+                        {
+                            balloonContentHeader: `<a href="#">${address}</a>`,
+                            balloonContentBody: `<div>${document.querySelector('.form').username.value} ${document.querySelector('.form').place.value}</div>`,
+                            balloonContentFooter: `<div>${getDate()} ${getTime()}</div>`,
+                            'coords': coords,
+                            'address': address,
+                            'user': document.querySelector('.form').username.value,
+                            'place': document.querySelector('.form').place.value,
+                            'review': document.querySelector('.form').review.value,
+                            'date': getDate(),
+                            'time': getTime()
+                        }
+
+                    let newPlacemark = new ymaps.Placemark(coords, placemark);
+                                
+                    placemarks.push(placemark)
+
+                    localStorage.setItem('placemarks', JSON.stringify(placemarks));
+                    clusterer.add(newPlacemark)
+                })
+
+                document.querySelector('.close').addEventListener('click', () => {
+                    document.querySelector('.popup').remove()
+                    geoMap.events.add('click', openNewWindow)
+                })
+            }
+       
+            function getDate() {
+                let date = new Date();
+                let year = date.getFullYear();
+                let month = date.getMonth() + 1;
+                let day = date.getDate();
+
+                month = (month < 10) ? '0' + month : month;
+                day = (day < 10) ? '0' + day : day;
+
+                return  year + '.' + day + '.' + month;
+            }
+
+            function getTime() {
+                let date = new Date();
+                let hours = date.getHours();
+                let minutes = date.getMinutes();
+                let seconds = date.getSeconds();
+
+                hours = (hours < 10) ? '0' + hours : hours;
+                minutes = (minutes < 10) ? '0' + minutes : minutes;
+                seconds = (seconds < 10) ? '0' + seconds: seconds;
+
+                return hours + ':' + minutes + ':' + seconds
+            }
+                  
+        }
+    </script>
+</body>
+</html>
