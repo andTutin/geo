@@ -41,7 +41,7 @@
                 '<div class=ballon_body>{{ properties.date|raw }}</div>'
             );
             
-            var windowTemplate = `<div class="popup__header"><div class="address"></div><button class="close"><div class="close__line"></div><div class="close__line"></div></button></div><div class="popup__body"><div class="reviews"><ul class="reviews__list"></ul></div><form class="form"><h3 class="form__title">ваш отзыв</h3><input required type="text" name="username" class="form__input" placeholder="Ваше имя"><input required type="text" name="place" class="form__input" placeholder="Укажите место"><textarea required name="review" class="form__textarea" placeholder="Поделитесь впечатлениями"></textarea><button type="submit" class="form__button">добавить</button></form></div>`;
+            var windowTemplate = `<div class="popup__header"><div class="address" onclick="openNewWindow(eмуте)"></div><button class="close"><div class="close__line"></div><div class="close__line"></div></button></div><div class="popup__body"><div class="reviews"><ul class="reviews__list"></ul></div><form class="form"><h3 class="form__title">ваш отзыв</h3><input required type="text" name="username" class="form__input" placeholder="Ваше имя"><input required type="text" name="place" class="form__input" placeholder="Укажите место"><textarea required name="review" class="form__textarea" placeholder="Поделитесь впечатлениями"></textarea><button type="submit" class="form__button">добавить</button></form></div>`;
 
             let placemarks = JSON.parse(localStorage.getItem('placemarks')) || [];
 
@@ -58,32 +58,85 @@
                     date: object.date,
                     time: object.time 
                 })
-
-                placemark.events.add('click', e => {
-                    e.preventDefault()
-                })
-
                 clusterer.add(placemark)
             })
 
             geoMap.geoObjects.events.add('click', e => {
-                console.log(e.get('target'));
                 if (e.get('target').options._name == 'geoObject') {
                     e.preventDefault();
                     geoMap.events.remove('click', openNewWindow);
                     let popup = document.createElement('div');
-                    let address;
+                    let address = e.get('target').properties._data.address;
+                    let coords = e.get('target').properties._data.coords
 
                     popup.innerHTML = windowTemplate;
                     popup.classList.add('popup');
                     document.body.appendChild(popup);
+
                     document.querySelector('.address').textContent = e.get('target').properties._data.address;
+
+                    placemarks.forEach(item => {
+                        if (item.address == e.get('target').properties._data.address) {
+                            document.querySelector('.reviews__list').innerHTML +=     
+                                `<li class="review">
+                                    <div class="review__info">
+                                        <span class="review__author">${item.user}</span>
+                                        <span class="review__place">${item.place}</span>
+                                        <span class="review__date">${item.date} ${item.time}</span>
+                                    </div>
+                                    <div class="review__text">
+                                        <p>${item.review}</p>
+                                    </div>
+                                </li>`;
+                        }
+                    })
+
                     document.querySelector('.close').addEventListener('click', () => {
-                    document.querySelector('.popup').remove()
-                    geoMap.events.add('click', openNewWindow)
-                })
+                        document.querySelector('.popup').remove()
+                        geoMap.events.add('click', openNewWindow)
+                    })
+
+                    document.querySelector('.form').addEventListener('submit', (e) => {
+                        e.preventDefault();
+
+                        let placemark =  
+                        {
+                            balloonContentHeader: `<a href="#">${address}</a>`,
+                            balloonContentBody: `<div>${document.querySelector('.form').username.value} ${document.querySelector('.form').place.value}</div>`,
+                            balloonContentFooter: `<div>${getDate()} ${getTime()}</div>`,
+                            'coords': coords,
+                            'address': address,
+                            'user': document.querySelector('.form').username.value,
+                            'place': document.querySelector('.form').place.value,
+                            'review': document.querySelector('.form').review.value,
+                            'date': getDate(),
+                            'time': getTime()
+                        }
+
+                    let newPlacemark = new ymaps.Placemark(coords, placemark);
+                                
+                    placemarks.push(placemark)     
+
+                    localStorage.setItem('placemarks', JSON.stringify(placemarks));
+                    clusterer.add(newPlacemark)
+
+                        document.querySelector('.reviews__list').innerHTML +=     
+                                `<li class="review">
+                                    <div class="review__info">
+                                        <span class="review__author">${document.querySelector('.form').username.value}</span>
+                                        <span class="review__place">${document.querySelector('.form').place.value}</span>
+                                        <span class="review__date">${getDate()} ${getTime()}</span>
+                                    </div>
+                                    <div class="review__text">
+                                        <p>${document.querySelector('.form').review.value}</p>
+                                    </div>
+                                </li>`;
+                    })
+
+
                 }
             })
+
             geoMap.events.add('click', openNewWindow);
                    
             function openNewWindow(e) {
@@ -97,8 +150,6 @@
                 popup.classList.add('popup');
                 document.body.appendChild(popup);
 
-                
-
                 ymaps.geocode(coords).then(res => {
                     address = res.geoObjects.get(0).getAddressLine();
                     document.querySelector('.address').textContent = address
@@ -106,6 +157,19 @@
 
                 document.querySelector('.form').addEventListener('submit', e => {
                     e.preventDefault();
+
+                    document.querySelector('.reviews__list').innerHTML +=     
+                    `<li class="review">
+                        <div class="review__info">
+                            <span class="review__author">${document.querySelector('.form').username.value}</span>
+                            <span class="review__place">${document.querySelector('.form').place.value}</span>
+                            <span class="review__date">${getDate()} ${getTime()}</span>
+                        </div>
+                        <div class="review__text">
+                            <p>${document.querySelector('.form').review.value}</p>
+                        </div>
+                    </li>`;
+
                     let placemark =  
                         {
                             balloonContentHeader: `<a href="#">${address}</a>`,
@@ -122,7 +186,7 @@
 
                     let newPlacemark = new ymaps.Placemark(coords, placemark);
                                 
-                    placemarks.push(placemark)
+                    placemarks.push(placemark)     
 
                     localStorage.setItem('placemarks', JSON.stringify(placemarks));
                     clusterer.add(newPlacemark)
@@ -158,7 +222,7 @@
 
                 return hours + ':' + minutes + ':' + seconds
             }
-                  
+
         }
     </script>
 </body>
