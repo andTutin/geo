@@ -36,10 +36,9 @@
             geoMap.geoObjects.add(clusterer);
 
             var customClusterBalloon = ymaps.templateLayoutFactory.createClass(
-                '<h2 class=ballon_header>{{ properties.balloonContentHeader|raw }}</h2>' + 
-                '<div class=ballon_body>{{ properties.review|raw }}</div>' + 
-                '<div class=ballon_body>{{ properties.date|raw }}</div>' +
-                '<input type="hidden" value="{{ properties.coords|raw }}"'
+                '<div class=ballon_header style="margin-bottom: 10px;">{{ properties.balloonContentHeader|raw }}</div>' + 
+                '<div class=ballon_body>{{ properties.balloonContentBody|raw }}</div>' + 
+                '<div class=ballon_body>{{ properties.balloonContentFooter|raw }}</div>'
             );
             
             var windowTemplate = `<div class="popup__header"><div class="address"></div><button class="close"><div class="close__line"></div><div class="close__line"></div></button></div><div class="popup__body"><div class="reviews"><ul class="reviews__list"></ul></div><form class="form"><h3 class="form__title">ваш отзыв</h3><input required type="text" name="username" class="form__input" placeholder="Ваше имя"><input required type="text" name="place" class="form__input" placeholder="Укажите место"><textarea required name="review" class="form__textarea" placeholder="Поделитесь впечатлениями"></textarea><button type="submit" class="form__button">добавить</button></form></div>`;
@@ -48,16 +47,16 @@
 
             placemarks.forEach(object => {
                 var placemark = new ymaps.Placemark(object.coords, {
-                    balloonContentHeader: `<a href="#" data-coords=${object.coords}>${object.address}</a>`,
-                    balloonContentBody: `<div>${object.user} ${object.place}</div>`,
-                    balloonContentFooter: `<div>${object.date} ${object.time}</div>`,
+                    balloonContentHeader: `<div style="margin-bottom: 10px;">${object.place}</div><a href="#" data-coords=${object.coords}>${object.address}</a>`,
+                    balloonContentBody: `<div>${object.place}</div>`,
+                    balloonContentFooter: `<div style="text-align: right;">${object.date} ${object.time}</div>`,
                     coords: object.coords,
                     address: object.address,
                     user: object.user,
                     place: object.place,
                     review: object.review,
                     date: object.date,
-                    time: object.time 
+                    time: object.time
                 })
                 clusterer.add(placemark)
             })
@@ -65,6 +64,7 @@
             geoMap.geoObjects.events.add('click', e => {
                 e.preventDefault();
                 geoMap.events.remove('click', openNewWindow);
+                geoMap.balloon.close();
 
                 if (e.get('target').options._name == 'geoObject') {
                     let address = e.get('target').properties._data.address;
@@ -78,6 +78,7 @@
                    
             function openNewWindow(e) {
                 geoMap.events.remove('click', openNewWindow);
+                geoMap.balloon.close();
 
                 let coords = e.get('coords');
                 let address;
@@ -162,18 +163,18 @@
         
             function addPlacemark(address, coords) {
                 let placemark =  
-                        {
-                            balloonContentHeader: `<a href="#" data-coords=${coords}>${address}</a>`,
-                            balloonContentBody: `<div>${document.querySelector('.form').username.value} ${document.querySelector('.form').place.value}</div>`,
-                            balloonContentFooter: `<div>${getDate()} ${getTime()}</div>`,
-                            'coords': coords,
-                            'address': address,
-                            'user': document.querySelector('.form').username.value,
-                            'place': document.querySelector('.form').place.value,
-                            'review': document.querySelector('.form').review.value,
-                            'date': getDate(),
-                            'time': getTime()
-                        }
+                    {
+                        balloonContentHeader: `<div style="margin-bottom: 10px;">${document.querySelector('.form').place.value}</div><a href="#" data-coords=${coords}>${address}</a>`,
+                        balloonContentBody: `<div>${document.querySelector('.form').review.value}</div>`,
+                        balloonContentFooter: `<div style="text-align: right;">${getDate()} ${getTime()}</div>`,
+                        'coords': coords,
+                        'address': address,
+                        'user': document.querySelector('.form').username.value,
+                        'place': document.querySelector('.form').place.value,
+                        'review': document.querySelector('.form').review.value,
+                        'date': getDate(),
+                        'time': getTime()
+                    }
                 let newPlacemark = new ymaps.Placemark(coords, placemark);
                                 
                 placemarks.push(placemark)
