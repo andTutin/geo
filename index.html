@@ -70,7 +70,7 @@
                     let address = e.get('target').properties._data.address;
                     let coords = e.get('target').properties._data.coords
 
-                    openWindow(address, coords);
+                    renderWindow(address, coords);
                 }
             })
 
@@ -84,7 +84,7 @@
 
                 ymaps.geocode(coords).then(res => {
                     address = res.geoObjects.get(0).getAddressLine();
-                    openWindow(address, coords)
+                    renderWindow(address, coords)
                 });
             }
        
@@ -123,7 +123,7 @@
                     let address = target.textContent;
                     let coords = target.dataset.coords.split(',')
 
-                    openWindow(address, coords)
+                    renderWindow(address, coords)
                 }
                 
             })
@@ -188,9 +188,9 @@
                 })
             }
             
-            function openWindow(address, coords) {
+            function renderWindow(address, coords) {
                 let popup = document.createElement('div');
-                
+
                 popup.innerHTML = windowTemplate;
                 popup.classList.add('popup');
                 document.body.appendChild(popup);
