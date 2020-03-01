@@ -42,7 +42,7 @@
                 '<input type="hidden" value="{{ properties.coords|raw }}"'
             );
             
-            var windowTemplate = `<div class="popup__header"><div class="address" onclick="openNewWindow(eмуте)"></div><button class="close"><div class="close__line"></div><div class="close__line"></div></button></div><div class="popup__body"><div class="reviews"><ul class="reviews__list"></ul></div><form class="form"><h3 class="form__title">ваш отзыв</h3><input required type="text" name="username" class="form__input" placeholder="Ваше имя"><input required type="text" name="place" class="form__input" placeholder="Укажите место"><textarea required name="review" class="form__textarea" placeholder="Поделитесь впечатлениями"></textarea><button type="submit" class="form__button">добавить</button></form></div>`;
+            var windowTemplate = `<div class="popup__header"><div class="address"></div><button class="close"><div class="close__line"></div><div class="close__line"></div></button></div><div class="popup__body"><div class="reviews"><ul class="reviews__list"></ul></div><form class="form"><h3 class="form__title">ваш отзыв</h3><input required type="text" name="username" class="form__input" placeholder="Ваше имя"><input required type="text" name="place" class="form__input" placeholder="Укажите место"><textarea required name="review" class="form__textarea" placeholder="Поделитесь впечатлениями"></textarea><button type="submit" class="form__button">добавить</button></form></div>`;
 
             let placemarks = JSON.parse(localStorage.getItem('placemarks')) || [];
 
@@ -69,23 +69,8 @@
                 if (e.get('target').options._name == 'geoObject') {
                     let address = e.get('target').properties._data.address;
                     let coords = e.get('target').properties._data.coords
-                    let popup = document.createElement('div');
 
-                    popup.innerHTML = windowTemplate;
-                    popup.classList.add('popup');
-                    document.body.appendChild(popup);
-
-                    document.querySelector('.address').textContent = address;
-
-                    renderReviewsList(placemarks, address)
-
-                    closeWindow()
-
-                    document.querySelector('.form').addEventListener('submit', (e) => {
-                        e.preventDefault();
-                        addReview();
-                        addPlacemark(address, coords)
-                    })
+                    openWindow(address, coords);
                 }
             })
 
@@ -95,27 +80,12 @@
                 geoMap.events.remove('click', openNewWindow);
 
                 let coords = e.get('coords');
-                let popup = document.createElement('div');
                 let address;
-                
-                popup.innerHTML = windowTemplate;
-                popup.classList.add('popup');
-                document.body.appendChild(popup);
 
                 ymaps.geocode(coords).then(res => {
                     address = res.geoObjects.get(0).getAddressLine();
-                    document.querySelector('.address').textContent = address
+                    openWindow(address, coords)
                 });
-
-                
-
-                document.querySelector('.form').addEventListener('submit', e => {
-                    e.preventDefault();
-                    addReview();
-                    addPlacemark(address, coords)
-                })
-
-                closeWindow()
             }
        
             function getDate() {
@@ -150,26 +120,10 @@
                     e.preventDefault();
                     geoMap.balloon.close();
                     geoMap.events.remove('click', openNewWindow);
-                    let popup = document.createElement('div');
                     let address = target.textContent;
                     let coords = target.dataset.coords.split(',')
-                    console.log(coords)
 
-                    popup.innerHTML = windowTemplate;
-                    popup.classList.add('popup');
-                    document.body.appendChild(popup);
-
-                    document.querySelector('.address').textContent = address;
-
-                    renderReviewsList(placemarks, address)
-
-                    document.querySelector('.form').addEventListener('submit', (e) => {
-                        e.preventDefault();
-                        addReview();
-                        addPlacemark();
-                    })
-
-                    closeWindow()
+                    openWindow(address, coords)
                 }
                 
             })
@@ -235,7 +189,23 @@
             }
             
             function openWindow(address, coords) {
+                let popup = document.createElement('div');
+                
+                popup.innerHTML = windowTemplate;
+                popup.classList.add('popup');
+                document.body.appendChild(popup);
 
+                document.querySelector('.address').textContent = address;
+
+                renderReviewsList(placemarks, address)
+
+                closeWindow()
+
+                document.querySelector('.form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    addReview();
+                    addPlacemark(address, coords)
+                })
             }
         }
     </script>
